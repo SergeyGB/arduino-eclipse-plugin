@@ -22,7 +22,7 @@ public class SerialConnection {
 	 *            the baud rate to use to connect
 	 */
 	public static void add(String comPort, int baudrate) {
-		SerialMonitor.getSerialMonitor().connectSerial(comPort, baudrate);
+		SerialMonitor.getSerialMonitor().connectSerial(comPort, baudrate, false);
 	}
 
 	/**

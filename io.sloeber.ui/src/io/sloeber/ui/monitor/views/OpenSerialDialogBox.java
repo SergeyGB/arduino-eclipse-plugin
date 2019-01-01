@@ -52,7 +52,7 @@ public class OpenSerialDialogBox extends Dialog {
 
 	myDtrCheckbox = new Button(parent, SWT.CHECK);
 	myDtrCheckbox.setText(Messages.openSerialDialogBoxDtr);
-	myDtrCheckbox.setSelection(true);
+	myDtrCheckbox.setSelection(false);
 
 	return parent;
 

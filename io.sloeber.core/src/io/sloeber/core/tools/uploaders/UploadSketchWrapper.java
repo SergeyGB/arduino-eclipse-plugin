@@ -186,6 +186,7 @@ public class UploadSketchWrapper {
 				});
 
 				highLevelStream.println(Messages.Upload_starting);
+				highLevelStream.println("BSG test 1");
 				IFile hexFile = myProject
 						.getFile(myConfDes.getBuildSetting().getBuilderCWD()
 								.append(myProject.getName() + ".hex")); //$NON-NLS-1$
@@ -197,21 +198,29 @@ public class UploadSketchWrapper {
 					highLevelStream.println(message);
 					monitor.beginTask(message, 2);
 					try {
+						highLevelStream.println("BSG test 2");
 						WeStoppedTheComPort = SerialManager.StopSerialMonitor(
 								myBoardDescriptor.getActualUploadPort());
 					} catch (Exception e) {
+						highLevelStream.println("BSG test 3");
 						ret = new Status(IStatus.WARNING, Const.CORE_PLUGIN_ID,
 								Messages.Upload_Error_com_port, e);
 						Common.log(ret);
 					}
 
+					if (WeStoppedTheComPort) { 
+						highLevelStream.println("BSG test 4.1");
+					}
 
+					highLevelStream.println("BSG test 4.2");
+					
 					if (!myUploader.uploadUsingPreferences(hexFile,
 							myBoardDescriptor, monitor, highLevelStream,
 							outStream, errStream)) {
 						String error=Messages.Upload_failed_upload_file.replace(FILE, hexFile.toString());
 						highLevelStream.println(error);
 						ret = new Status(IStatus.ERROR, Const.CORE_PLUGIN_ID,error);
+						Common.log(ret);
 					}
 
 				} catch (Exception e) {

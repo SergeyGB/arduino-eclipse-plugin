@@ -5,8 +5,13 @@ import java.util.List;
 import java.util.Set;
 
 import org.eclipse.core.resources.IProject;
+import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.Status;
 
 import cc.arduino.packages.discoverers.SloeberNetworkDiscovery;
+import io.sloeber.core.Messages;
+import io.sloeber.core.common.Common;
+import io.sloeber.core.common.Const;
 
 public class SerialManager {
 	static ISerialUser otherSerialUser = null; // If someone else uses the
@@ -37,8 +42,17 @@ public class SerialManager {
 	}
 
 	public static boolean StopSerialMonitor(String mComPort) {
+		//Common.log(new Status(IStatus.WARNING, Const.CORE_PLUGIN_ID, "BSG StopSerialMonitor 1"));
 		if (otherSerialUser != null) {
-			return otherSerialUser.PauzePort(mComPort);
+			//Common.log(new Status(IStatus.WARNING, Const.CORE_PLUGIN_ID, "BSG StopSerialMonitor 2"));
+			boolean PauzePortf = false;
+			try {
+				PauzePortf = otherSerialUser.PauzePort(mComPort);
+			} catch (Exception e) {
+				Common.log(new Status(IStatus.WARNING, Const.CORE_PLUGIN_ID, "StopSerialMonitor 3" , e));
+			}
+			
+			return PauzePortf;
 		}
 		return false;
 	}
@@ -60,7 +74,7 @@ public class SerialManager {
 	@SuppressWarnings("nls")
 	public static String[] listBaudRates() {
 
-		String[] outgoing = { "921600", "460800", "230400", "115200", "76800", "57600", "38400", "31250", "28800",
+		String[] outgoing = { "921600", "460800", "230400", "115200", "74880", "76800", "57600", "38400", "31250", "28800",
 				"19200", "14400", "9600", "4800", "2400", "1200", "300" };
 		return outgoing;
 	}

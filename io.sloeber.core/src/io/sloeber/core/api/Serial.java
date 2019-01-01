@@ -210,7 +210,7 @@ public class Serial implements SerialPortEventListener {
 				try {
 					this.port.closePort();
 				} catch (SerialPortException e) {
-					// e.printStackTrace();
+					 Common.log(new Status(IStatus.WARNING, Const.CORE_PLUGIN_ID,	"disconnect", e));
 				}
 			}
 			this.port = null;

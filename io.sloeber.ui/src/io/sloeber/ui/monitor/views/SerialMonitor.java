@@ -1,5 +1,7 @@
 package io.sloeber.ui.monitor.views;
 
+import static org.junit.Assert.fail;
+
 import java.io.File;
 import java.net.URL;
 import java.util.ArrayList;
@@ -58,6 +60,8 @@ import org.eclipse.ui.themes.IThemeManager;
 import io.sloeber.core.api.ISerialUser;
 import io.sloeber.core.api.Serial;
 import io.sloeber.core.api.SerialManager;
+import io.sloeber.core.common.Common;
+import io.sloeber.core.common.Const;
 import io.sloeber.ui.Activator;
 import io.sloeber.ui.Messages;
 import io.sloeber.ui.helpers.MyPreferences;
@@ -117,6 +121,11 @@ public class SerialMonitor extends ViewPart implements ISerialUser {
 	private Button send;
 	// The button to reset the arduino
 	private Button reset;
+
+	// The button to reset the arduino
+	private Button buttonR; //bsg
+	private Button buttonP; //bsg
+
 	// Contains the colors that are used
 	private String[] serialColorID = null;
 	// link to color registry
@@ -202,7 +211,7 @@ public class SerialMonitor extends ViewPart implements ISerialUser {
 	public void createPartControl(Composite parent1) {
 		parent = parent1;
 		parent1.setLayout(new GridLayout());
-		GridLayout layout = new GridLayout(5, false);
+		GridLayout layout = new GridLayout(7, false);
 		layout.marginHeight = 0;
 		layout.marginWidth = 0;
 		Composite top = new Composite(parent1, SWT.NONE);
@@ -280,6 +289,9 @@ public class SerialMonitor extends ViewPart implements ISerialUser {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
 				GetSelectedSerial().reset();
+				GetSelectedSerial().setDTR(false); //bgs
+				GetSelectedSerial().setRTS(false); //bgs
+				monitorOutput.setText(new String());
 				sendString.setFocus();
 			}
 
@@ -290,6 +302,53 @@ public class SerialMonitor extends ViewPart implements ISerialUser {
 		});
 		reset.setEnabled(false);
 
+		buttonR = new Button(top, SWT.BUTTON1);
+		buttonR.setText(new String("R"));
+		buttonR.addSelectionListener(new SelectionListener() {
+
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				//bsg GetSelectedSerial().reset();
+				GetSelectedSerial().setDTR(true); //bgs
+				GetSelectedSerial().setRTS(false); //bgs
+				try {
+				    Thread.sleep(100);
+				} catch (InterruptedException ee) {// JABA is not going to add code
+				}
+				GetSelectedSerial().setDTR(false);
+				sendString.setFocus(); //bsg
+				String newLine=System.getProperty("line.separator");//$NON-NLS-1$
+				monitorOutput.append(newLine + new String("RESET") + newLine);
+
+			}
+
+			@Override
+			public void widgetDefaultSelected(SelectionEvent e) {
+				// nothing needs to be done here
+			}
+		});
+
+		buttonP = new Button(top, SWT.BUTTON1);
+		buttonP.setText(new String("="));
+		buttonP.addSelectionListener(new SelectionListener() {
+
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				//bsg GetSelectedSerial().reset();
+				GetSelectedSerial().setDTR(false); //bgs
+				GetSelectedSerial().setRTS(false); //bgs
+				sendString.setFocus(); //bsg
+				String newLine=System.getProperty("line.separator");//$NON-NLS-1$
+				monitorOutput.append(newLine + new String("PAUSE") + newLine);
+			}
+
+			@Override
+			public void widgetDefaultSelected(SelectionEvent e) {
+				// nothing needs to be done here
+			}
+		});
+
+		
 		// register the combo as a Selection Provider
 		getSite().setSelectionProvider(serialPorts);
 
@@ -398,7 +457,7 @@ public class SerialMonitor extends ViewPart implements ISerialUser {
 				OpenSerialDialogBox comportSelector = new OpenSerialDialogBox(parent.getShell());
 				comportSelector.create();
 				if (comportSelector.open() == Window.OK) {
-					connectSerial(comportSelector.GetComPort(), comportSelector.GetBaudRate());
+					connectSerial(comportSelector.GetComPort(), comportSelector.GetBaudRate(), comportSelector.GetDtr());
 
 				}
 			}
@@ -517,17 +576,17 @@ public class SerialMonitor extends ViewPart implements ISerialUser {
 	 * @param baudRate
 	 *            the baud rate to connect to the com port
 	 */
-	public void connectSerial(String comPort, int baudRate) {
+	public void connectSerial(String comPort, int baudRate, boolean dtr) {
 		if (serialConnections.size() < MY_MAX_SERIAL_PORTS) {
 			int colorindex = serialConnections.size();
-			Serial newSerial = new Serial(comPort, baudRate);
+			Serial newSerial = new Serial(comPort, baudRate, dtr);
 			if (newSerial.IsConnected()) {
 				newSerial.registerService();
 				SerialListener theListener = new SerialListener(this, colorindex);
 				newSerial.addListener(theListener);
 				String newLine=System.getProperty("line.separator");//$NON-NLS-1$
 				theListener.event( newLine+ Messages.serialMonitorConnectedTo.replace(Messages.PORT, comPort).replace(Messages.BAUD,Integer.toString(baudRate) ) 
-						+ newLine); 
+						+ new String(" DRT ") + newLine); 
 				serialConnections.put(newSerial, theListener);
 				SerialPortsUpdated();
 				return;
@@ -540,15 +599,23 @@ public class SerialMonitor extends ViewPart implements ISerialUser {
 	}
 
 	public void disConnectSerialPort(String comPort) {
-		Serial newSerial = GetSerial(comPort);
-		if (newSerial != null) {
-			SerialListener theListener = serialConnections.get(newSerial);
-			serialConnections.remove(newSerial);
-			newSerial.removeListener(theListener);
-			newSerial.dispose();
-			theListener.dispose();
-			SerialPortsUpdated();
+		
+		//Common.log(new Status(IStatus.WARNING, Const.CORE_PLUGIN_ID, "BSG disConnectSerialPort 1"));
+		try {
+			Serial newSerial = GetSerial(comPort);
+			if (newSerial != null) {
+				SerialListener theListener = serialConnections.get(newSerial);
+				serialConnections.remove(newSerial);
+				newSerial.removeListener(theListener);
+				newSerial.dispose();
+				theListener.dispose();
+				SerialPortsUpdated();
+			}
+		} catch (Exception e) {
+			Common.log(new Status(IStatus.WARNING, Const.CORE_PLUGIN_ID,	"BSG disConnectSerialPort e1", e));
 		}
+		
+		
 	}
 
 	/**
@@ -568,10 +635,20 @@ public class SerialMonitor extends ViewPart implements ISerialUser {
 	 */
 	@Override
 	public boolean PauzePort(String portName) {
-		Serial theSerial = GetSerial(portName);
-		if (theSerial != null) {
-			theSerial.disconnect();
-			return true;
+
+		//Common.log(new Status(IStatus.WARNING, Const.CORE_PLUGIN_ID, "BSG PauzePort 1"));
+		try {
+			Serial theSerial = GetSerial(portName);
+			//Common.log(new Status(IStatus.WARNING, Const.CORE_PLUGIN_ID, "BSG PauzePort 2"));
+			if (theSerial != null) {
+				//Common.log(new Status(IStatus.WARNING, Const.CORE_PLUGIN_ID, "BSG PauzePort 3 " + portName));
+				theSerial.disconnect();
+				//Common.log(new Status(IStatus.WARNING, Const.CORE_PLUGIN_ID, "BSG PauzePort 4 " + portName));
+				//disConnectSerialPort(portName);
+				return true;
+			}
+		} catch (Exception e) {
+			Common.log(new Status(IStatus.WARNING, Const.CORE_PLUGIN_ID,	"BSG PauzePort e1", e));
 		}
 		return false;
 	}
@@ -581,19 +658,22 @@ public class SerialMonitor extends ViewPart implements ISerialUser {
 	 */
 	@Override
 	public void ResumePort(String portName) {
-		Serial theSerial = GetSerial(portName);
-		if (theSerial != null) {
-			if (MyPreferences.getCleanSerialMonitorAfterUpload()) {
+		try {
+			Serial theSerial = GetSerial(portName);
+			if (theSerial != null) {
+				if (MyPreferences.getCleanSerialMonitorAfterUpload()) {
 
-				Display.getDefault().asyncExec(new Runnable() {
-					@Override
-					public void run() {
-						monitorOutput.setText(new String()); 
-					}
-				});
-
+					Display.getDefault().asyncExec(new Runnable() {
+						@Override
+						public void run() {
+							monitorOutput.setText(new String()); 
+						}
+					});
+				}
+				theSerial.connect(15);
 			}
-			theSerial.connect(15);
+		} catch (Exception e) {
+			Common.log(new Status(IStatus.WARNING, Const.CORE_PLUGIN_ID,	"BSG ResumePort e1", e));
 		}
 	}
 
